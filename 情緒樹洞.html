@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心靈綠洲：深夜的情緒容器</title>
+    <style>
+        :root {
+            --bg-cream: #f4f1ea;
+            --milk-tea: #e6dfd3;
+            --sage-green: #8fa89b;
+            --text-dark: #3a352d;
+            --text-muted: #8c8275;
+            
+            --rain-body: #1e2126;
+            --rain-text: #ffffff;
+            
+            --lamp-gold: #f39c12;
+            --sunny-yellow: #f5cd79;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--rain-body);
+            color: var(--rain-text);
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            transition: background 1.5s ease, color 1.5s ease;
+        }
+
+        /* 🚪 入房儀式感 */
+        #entryOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #15171a; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 1s ease;
+        }
+        #entryOverlay h1 { color: #e6dfd3; letter-spacing: 4px; margin-bottom: 15px; font-weight: 300; }
+        #entryOverlay p { color: #8c8275; margin-bottom: 40px; font-size: 0.95rem; letter-spacing: 1px; text-align: center; line-height: 1.6;}
+        .enter-btn {
+            background: transparent; border: 1px solid #e6dfd3; color: #e6dfd3;
+            padding: 12px 45px; border-radius: 50px; font-size: 1rem; letter-spacing: 2px;
+            cursor: pointer; transition: all 0.4s;
+        }
+        .enter-btn:hover { background: #e6dfd3; color: #15171a; }
+
+        /* 雨天專用畫布 */
+        .rain-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1; opacity: 0.25; 
+            transition: opacity 2s ease;
+        }
+
+        /* 門牌導覽列 */
+        .room-nav {
+            position: fixed; top: 25px; display: flex; gap: 12px;
+            background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 6px 12px; border-radius: 30px; border: 1px solid rgba(230, 223, 211, 0.6);
+            z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.03); opacity: 0; transition: opacity 1s;
+        }
+        .nav-btn {
+            background: transparent; border: none; padding: 8px 16px; border-radius: 20px;
+            font-size: 0.88rem; cursor: pointer; color: var(--text-muted); transition: all 0.4s ease; font-weight: 500;
+        }
+        .nav-btn.active {
+            background: #ffffff; color: var(--text-dark); box-shadow: 0 4px 10px rgba(58, 53, 45, 0.08); font-weight: bold;
+        }
+
+        /* 主容器 */
+        .room-container {
+            max-width: 580px; width: 100%;
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 32px; padding: 40px 30px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.05); position: relative; z-index: 10;
+            opacity: 0; transform: translateY(20px); transition: all 1s ease;
+        }
+
+        .room-space { display: none; animation: spaceFade 1s ease forwards; text-align: left; }
+        .room-space.active { display: block; }
+
+        .room-title { font-size: 1.3rem; margin-bottom: 8px; font-weight: 600; text-align: center; }
+        .room-desc { font-size: 0.88rem; color: var(--text-muted); text-align: center; line-height: 1.6; margin-bottom: 30px; }
+        
+        body:not(.light-mode) .room-title { color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        body:not(.light-mode) .room-desc { color: #dcdde1; text-shadow: 0 2px 8px rgba(0,0,0,0.9); font-weight: 500; }
+        body:not(.light-mode) .room-container { background: rgba(30, 33, 38, 0.4); border-color: rgba(255,255,255,0.1); }
+
+        /* 🌧️ 雨天房間 */
+        .night-lamp-zone { display: flex; justify-content: center; margin-bottom: 30px; }
+        .night-lamp {
+            width: 45px; height: 45px; background: #fff; border-radius: 50%;
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.2);
+            animation: lampBreath 5s infinite ease-in-out;
+        }
+        textarea {
+            width: 100%; height: 110px; background: rgba(255,255,255,0.9); border: 1px solid var(--milk-tea);
+            border-radius: 16px; padding: 15px; font-size: 0.95rem; color: var(--text-dark);
+            line-height: 1.6; resize: none; margin-bottom: 15px; transition: all 0.3s;
+        }
+        body:not(.light-mode) textarea { background: rgba(255,255,255,0.85); box-shadow: inset 0 2px 10px rgba(0,0,0,0.1); }
+        textarea:focus { outline: none; border-color: var(--sage-green); }
+        
+        /* 🌿 呼吸房間 */
+        .breath-hub { display: flex; flex-direction: column; align-items: center; margin: 40px 0; }
+        .breath-ball-wrapper { width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .breath-ball {
+            width: 80px; height: 80px; background: var(--sage-green); border-radius: 50%;
+            box-shadow: 0 0 30px rgba(143, 168, 155, 0.4); transition: transform 0.1s linear; 
+        }
+        .breath-state-text { margin-top: 30px; font-size: 1.1rem; font-weight: bold; color: var(--text-dark); height: 30px; }
+        .eyes-closed-hint { margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
+
+        /* ☀️ 重新開始房間 */
+        .miracle-card {
+            background: #ffffff; border-radius: 20px; padding: 25px;
+            border: 1px solid rgba(230, 223, 211, 0.7); line-height: 1.7;
+            font-size: 0.98rem; text-align: justify; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.01);
+        }
+        .task-box {
+            background: rgba(245, 205, 121, 0.15); border-left: 4px solid var(--sunny-yellow);
+            padding: 15px; border-radius: 0 12px 12px 0; margin-top: 20px; font-size: 0.92rem;
+        }
+        
+        /* 公用按鈕 */
+        .btn-center { text-align: center; }
+        .action-btn {
+            background: var(--text-dark); color: white; border: none; padding: 11px 35px;
+            font-size: 0.9rem; border-radius: 50px; cursor: pointer; transition: all 0.3s;
+            letter-spacing: 1px; font-weight: 500;
+        }
+        body:not(.light-mode) .action-btn { background: var(--sage-green); box-shadow: 0 5px 15px rgba(143, 168, 155, 0.2); }
+        .action-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+
+        @keyframes spaceFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes lampBreath {
+            0%, 100% { background: #f39c12; box-shadow: 0 0 15px rgba(243, 156, 18, 0.4); }
+            50% { background: #ffdd59; box-shadow: 0 0 45px rgba(255, 221, 89, 0.9); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="entryOverlay">
+    <h1>深夜避風港</h1>
+    <p>請開啟聲音或戴上耳機<br>準備好後，推開這扇門</p>
+    <button class="enter-btn" onclick="enterSanctuary()">推開房門</button>
+</div>
+
+<canvas class="rain-canvas" id="rainCanvas"></canvas>
+
+<div class="room-nav" id="roomNav">
+    <button class="nav-btn active" id="btn-rain" onclick="switchRoom('rain')">🌧️ 雨天房間</button>
+    <button class="nav-btn" id="btn-breath" onclick="switchRoom('breath')">🌿 呼吸房間</button>
+    <button class="nav-btn" id="btn-sunny" onclick="switchRoom('sunny')">☀️ 重新開始</button>
+</div>
+
+<div class="room-container" id="mainContainer">
+    <div class="room-space active" id="room-rain">
+        <div class="room-title">雨天房間</div>
+        <div class="room-desc">適合：想哭 · 低潮 · 孤單<br>窗外正下著無聲的雨，在這裡你不需要假裝堅強。</div>
+        <div class="night-lamp-zone"><div class="night-lamp"></div></div>
+        <textarea id="rainNote" placeholder="那些壓抑在心裡、不知該對誰說的寂寞與淚水……把它倒在這裡吧。我會一直在這盞燈下陪著你。"></textarea>
+        <div class="btn-center"><button class="action-btn" onclick="burnRainNote()">將傷痛留在雨中</button></div>
+    </div>
+
+    <div class="room-space" id="room-breath">
+        <div class="room-title">呼吸房間</div>
+        <div class="room-desc">適合：焦慮 · 過度思考 · 腦袋停不下來<br>把繁雜的思緒切斷。跟著滴答聲，把主導權還給身體。</div>
+        <div class="breath-hub">
+            <div class="breath-ball-wrapper"><div class="breath-ball" id="bBall"></div></div>
+            <div class="breath-state-text" id="bText">準備對頻...</div>
+            <div class="eyes-closed-hint">啟動後，你可以安心閉上眼睛聽聲音</div>
+        </div>
+        <div class="btn-center"><button class="action-btn" id="breathCtrlBtn" onclick="toggleBreathEngine()">啟動 4-7-8 意識調息</button></div>
+    </div>
+
+    <div class="room-space" id="room-sunny">
+        <div class="room-title">重新開始房間</div>
+        <div class="room-desc">適合：缺乏動力 · 卡住 · 陷入泥淖<br>伴著和煦的微光音樂，今天我們只往前跨出一毫米。</div>
+        <div class="miracle-card">
+            <p id="sunnyOracle">「你不需要現在就看清整條路的終點，你只需要看清今晚落腳的那一步。你已經做得很好了。」</p>
+            <div class="task-box">
+                <strong>🍃 宇宙給你的微多巴胺行動：</strong>
+                <p id="microTask" style="margin-top: 5px; color: var(--text-dark); font-weight: 500;">點擊下方按鈕，接收你此時此刻的極簡小任務。</p>
+            </div>
+        </div>
+        <div class="btn-center"><button class="action-btn" onclick="generateMicroMiracle()">抽取今日微光任務</button></div>
+    </div>
+</div>
+
+<script>
+    let rainCtx = null;
+    let rainInterval = null;
+    let rLines = [];
+
+    // 🎵 音訊引擎核心
+    let audioCtx = null;
+    let activeAudioNodes = [];
+    let audioLoopTimers = [];
+    
+    // 🌿 呼吸節拍器核心
+    let breathTimerObj = null;
+    let breathIsRunning = false;
+    let breathPhase = 'inhale'; 
+    let breathTickCount = 0;
+
+    // 🌟 資料庫
+    const sunnyOracles = [
+        "「慢下來不是軟弱。種子在泥土裡黑暗了很久，只是為了在最安全的時候，開出一朵毫無防備的花。」",
+        "「你不需要去證明給任何人看。今晚，允許自己只是安全地坐在沙發上，這本身就是一場神聖的勝利。」",
+        "「卡住的時候，代表你長大了，舊的環境再也裝不下你了。這段痛苦，是靈魂在幫你開闢新路的生長痛。」",
+        "「沒有人能一直保持勇敢。承認自己的脆弱，是你對自己最深情的溫柔。」",
+        "「今天什麼都不想做也沒關係。休眠也是一種生命週期，請放心把能量留給自己。」"
+    ];
+
+    const microTasks = [
+        "【滋養細胞】去倒一杯溫熱的水，用最慢的速度喝下去，感受水流流過喉嚨的溫度。",
+        "【空間精簡】將你身旁書桌上隨便一個雜亂的物品，把它歸位或丟掉。告訴自己：我正在拿回主導權。",
+        "【重力著陸】把雙腳平放在地板上，閉上眼，感受地心引力穩穩托住你，持續 20 秒。",
+        "【感官復位】深呼吸，轉頭看看四周，找出 3 個綠色的東西。",
+        "【肩頸釋放】將雙肩用力聳起靠近耳朵，憋氣 3 秒，然後瞬間徹底放鬆落下。",
+        "【數位排毒】立刻關掉手機上一個你不想看卻一直開著的網頁分頁。",
+        "【溫柔善待】雙手交叉抱住自己的肩膀，輕輕拍三下，對自己說一聲：『辛苦了』。",
+        "【物理刷新】去洗手間，用冷水輕輕拍打臉頰，或者洗一洗雙手，把疲憊洗掉。",
+        "【聽覺轉換】閉上眼睛，試著找出此時此刻你能聽到的、最遠的一個聲音。",
+        "【視覺留白】把視線從螢幕移開，看向窗外或最遠的牆角，讓眼球休息 30 秒。",
+        "【觸覺定錨】找一件身邊材質最柔軟的東西（毛毯、衣服或抱枕），閉上眼撫摸它 10 秒鐘。",
+        "【微小破局】如果你正躺著，試著坐起來；如果你正坐著，試著站起來伸個懶腰。",
+        "【思緒清空】拿出一張廢紙，在上面亂塗亂畫 30 秒，然後把它揉成一團丟進垃圾桶。",
+        "【氣味喚醒】去找一個你喜歡的味道（香水、咖啡豆、茶葉或乳液），深深聞一口。",
+        "【陽光接引】如果現在是白天，走到窗邊讓自然光照在臉上 10 秒；若是夜晚，去開一盞暖色調的燈。",
+        "【釋放嘆息】用力吸飽一口氣，然後發出聲音地「唉——」一聲，把胸口的悶氣全部嘆出來。",
+        "【指尖按摩】用右手大拇指，用力按壓左手掌心，然後換邊，幫助神經末梢放鬆。",
+        "【數位斷捨離】打開手機相簿，刪除 3 張毫無意義的截圖或模糊的照片。",
+        "【能量補給】去吃一口任何你喜歡的零食，慢慢咀嚼，只專注在食物的味道上。",
+        "【頭部放鬆】用雙手指腹輕輕按摩自己的頭皮，想像把緊繃的思緒全部揉散。",
+        "【眼球運動】頭不動，眼球用力往上看、往下看、往左看、往右看，重複兩次。",
+        "【感恩微光】在心裡想一件今天發生的、哪怕微小到不行的好事（例如水很好喝）。",
+        "【伸展釋放】雙手十指交扣，手心朝外，用力往前伸展，直到感覺背部肌肉被拉開。",
+        "【溫柔對視】去照一下鏡子，不要挑剔自己，只是看著鏡中人的眼睛，輕輕點個頭。",
+        "【中斷干擾】把手機設為「勿擾模式」或靜音，給自己保證接下來 15 分鐘與世隔絕。",
+        "【環境重置】把房間裡的窗戶打開一條縫，讓新鮮的空氣流動進來 1 分鐘。",
+        "【下肢活化】坐在椅子上，把腳跟踮起來再放下，重複 10 次，促進血液回流。",
+        "【文字釋放】打開手機備忘錄，寫下「我現在覺得...」，順著直覺打完一句話即可。",
+        "【臉部放鬆】用力皺起整張臉，連眼睛都用力閉緊，維持 3 秒後瞬間放鬆所有表情。",
+        "【溫度調節】如果覺得冷，去拿一件外套或毯子披上；如果覺得悶，去用冷水沖一下手腕。",
+        "【空間歸零】把眼前桌面上的一個垃圾（例如衛生紙、空瓶）丟進垃圾桶。",
+        "【聽覺隔絕】戴上耳機，不一定要放音樂，只是享受被物理隔絕外界雜音的安全感。",
+        "【微小行動】把手機螢幕的亮度調低一點，給疲憊的眼睛一點溫柔。",
+        "【頸部放鬆】下巴慢慢去貼近鎖骨，感受脖子後方的拉伸，維持 10 秒鐘。",
+        "【數位抽離】退出當前讓你感到焦慮的社群軟體（IG, FB等），今天先不看了。",
+        "【水分澆灌】如果家裡有植物，去給它澆一點水；沒有植物，就去給自己倒杯水。",
+        "【感官分離】閉上眼，試著分辨出空氣中有幾種不同的味道或氣流的感覺。",
+        "【掌心生熱】雙手用力快速摩擦 10 秒鐘直到發熱，然後把掌心輕輕蓋在閉著的雙眼上。",
+        "【清空雜念】在腦海中想像一個黑板，把你現在最煩惱的事寫上去，然後拿板擦把它擦掉。",
+        "【脊椎甦醒】坐直身體，想像頭頂有一條隱形的線把你輕輕往上拉，維持這個挺拔的姿勢 5 秒。",
+        "【微聲振動】閉著嘴巴，輕輕發出「嗯——」的哼鳴聲，感受聲音在胸腔與喉嚨的震動。",
+        "【善待腸胃】雙手交疊放在肚臍上，順時針輕輕畫圈按摩 10 次。",
+        "【視覺轉移】隨機點開手機裡的一張風景照或寵物照，盯著它看 15 秒。",
+        "【重心轉移】站起來，把全身重量放在左腳 3 秒，再換到右腳 3 秒，感受重心的變換。",
+        "【清理思緒】把腦中所有「我應該...」的句子，換成「我可以選擇...」在心裡默念一遍。",
+        "【局部放鬆】專注在你的下巴，確認你的牙齒沒有緊咬著，讓嘴唇微微張開放鬆。",
+        "【微小計畫】決定你等一下要做的「唯一一件小事」（例如：去洗澡，或去躺下）。",
+        "【數位留白】取消追蹤一個每次看了都會讓你感到焦慮或自我懷疑的帳號。",
+        "【擁抱柔軟】找一個有毛絨質感的東西，把臉埋進去深呼吸一次。",
+        "【聽覺治癒】在 YouTube 搜尋「營火聲」或「雨聲」，靜靜聽 30 秒。",
+        "【關節釋放】轉動你的手腕和腳踝，左轉 5 圈，右轉 5 圈。",
+        "【感恩肉體】摸摸你的雙腿，感謝它們今天支撐著你走到現在。",
+        "【重置呼吸】刻意讓吐氣的時間，比吸氣的時間長一倍，重複 3 次。",
+        "【空間切換】如果你在臥室，去客廳走一圈；如果你在客廳，去陽台站一下。打破空間僵局。",
+        "【視覺降噪】關掉房間裡最亮的那盞主燈，只留一盞溫柔的小燈。",
+        "【能量梳理】用十根手指當作梳子，從額頭往後梳理頭髮 5 次。",
+        "【微小宣言】對著空氣小聲說一句：「我允許自己現在甚麼都不做。」",
+        "【清理包袱】打開包包或錢包，拿出一張不需要的收據丟掉。",
+        "【觸摸大地】脫掉襪子，讓光腳直接踩在地板上，感受堅實的觸感。",
+        "【釋放執念】對自己說：「這件事我今天先放過我自己，明天再說。」",
+        "【水分儀式】去洗個臉，感受水滴從皮膚上滑落的清涼感。",
+        "【手部舒緩】把雙手泡在溫水裡 10 秒鐘，感受熱量傳遞到手心。",
+        "【聽覺專注】閉上眼，聽聽自己呼吸的聲音，不要去控制它，只是聽著。",
+        "【視覺聚焦】盯著眼前的一件物品（例如馬克杯），觀察它上面最小的一個細節。",
+        "【情緒命名】在心裡給現在的感覺取個名字（例如：一團灰色的毛線）。",
+        "【肩胛活動】雙手往後伸，試著讓兩塊肩胛骨靠近，把胸腔打開呼吸一次。",
+        "【放下手機】把手機螢幕朝下，放在離你手臂伸直也拿不到的地方，持續 5 分鐘。",
+        "【溫柔撫摸】用手背輕輕撫摸自己的另一隻手背，像在安慰一個受驚的朋友。",
+        "【能量轉換】去換一套最舒服、最寬鬆的睡衣或居家服。",
+        "【清空桌面】把電腦桌面上雜亂的檔案，全部先丟進一個叫「暫存」的資料夾裡。",
+        "【色彩療癒】在身邊找一個藍色的物品，藍色有助於降低心率。",
+        "【釋放喉嚨】輕輕吞一口口水，放鬆緊繃的喉部肌肉。",
+        "【微小慶祝】為自己今天「有好好活下來」這件事，在心裡給自己拍拍手。",
+        "【思維抽離】想像你的焦慮是一朵雲，現在風把它吹遠了。",
+        "【觸覺轉換】去摸一摸冰冷的金屬（例如門把或水龍頭），瞬間轉換觸覺刺激。",
+        "【重心向下】坐在椅子上，想像身體變得很重很重，深深陷進椅子裡。",
+        "【聽覺留白】閉上眼睛，在心裡倒數 10 秒，享受這 10 秒的絕對安靜。",
+        "【視覺洗滌】閉上眼睛，用雙手輕輕覆蓋眼窩，讓眼睛處於完全的黑暗中 10 秒。",
+        "【微小改變】把手錶換到另一隻手，或者把戒指換個手指戴，打斷慣性。",
+        "【情緒抽離】用第三人稱對自己說話：「（你的名字）現在覺得有點累了。」",
+        "【溫暖腹部】搓熱雙手，放在下腹部，給核心一點溫暖。",
+        "【釋放壓力】雙手握拳，用力到極限維持 3 秒，然後瞬間全部鬆開。",
+        "【空間淨化】噴一點你喜歡的香水或空間噴霧在空氣中。",
+        "【微小連結】傳一個愛心或可愛的貼圖，給你最好的一個朋友（不需要說話）。",
+        "【思緒具象化】想像腦袋裡的煩惱是一堆落葉，現在拿掃把把它們掃到角落。",
+        "【身體對話】問問自己的身體：「你現在最需要什麼？」並聽聽它的直覺。",
+        "【視覺放鬆】把手機螢幕的色溫調暖（夜間模式），減少藍光刺激。",
+        "【釋放膝蓋】站起來，輕輕甩動左腳 3 下，再甩動右腳 3 下。",
+        "【溫柔肯定】在心裡對自己說：「現在這個狀態，也是我的一部分，我接納它。」",
+        "【聽覺轉換】如果你在聽快歌，換一首慢歌；如果你在聽慢歌，改成純音樂。",
+        "【重心平衡】雙腳與肩同寬站立，微微屈膝，感受下盤的穩固力量。",
+        "【情緒封裝】想像一個堅固的盒子，把今天不開心的事情裝進去，上鎖。",
+        "【微小滋養】去塗一點護唇膏或護手霜，照顧身體的微小細節。",
+        "【空間通風】打開電風扇或空調，讓周圍的空氣產生流動感。",
+        "【思緒轉換】想一件明天可能會發生、且讓你稍微期待的小事（例如吃早餐）。",
+        "【聽覺舒緩】輕輕彈一彈自己的耳朵，或者揉一揉耳垂。",
+        "【視覺歸零】把電腦或手機的桌布，換成一張純色或風景的安靜圖片。",
+        "【釋放腳趾】脫掉鞋子，把腳趾用力張開到最大，再蜷縮起來，重複 3 次。",
+        "【溫柔道別】對今天發生的所有不愉快，在心裡說一句：「好了，就到此為止吧。」",
+        "【重獲平靜】閉上雙眼，給自己一個大大的微笑，不為別的，只為你值得。"
+    ];
+
+    // 🚪 點擊進入
+    function enterSanctuary() {
+        const overlay = document.getElementById('entryOverlay');
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            document.getElementById('roomNav').style.opacity = '1';
+            const container = document.getElementById('mainContainer');
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+            
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            initRainEffect();
+            playAudioEngine('rain');
+        }, 800);
+    }
+
+    // 🏛️ 房間切換
+    function switchRoom(roomKey) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${roomKey}`).classList.add('active');
+        document.querySelectorAll('.room-space').forEach(s => s.classList.remove('active'));
+        document.getElementById(`room-${roomKey}`).classList.add('active');
+
+        const canvas = document.getElementById('rainCanvas');
+        if (roomKey === 'rain') {
+            document.body.classList.remove('light-mode');
+            document.body.style.backgroundColor = "#1e2126";
+            document.body.style.color = "#eceff1";
+            canvas.style.opacity = "0.25";
+            initRainEffect(); 
+            stopBreathEngine();
+        } else {
+            document.body.classList.add('light-mode');
+            if (roomKey === 'breath') {
+                document.body.style.backgroundColor = "#e8ece9"; 
+            } else {
+                document.body.style.backgroundColor = "#f7f1e3"; 
+            }
+            document.body.style.color = "#2c3e50";
+            canvas.style.opacity = "0"; 
+            clearInterval(rainInterval);
+            if (roomKey === 'sunny') stopBreathEngine();
+        }
+        playAudioEngine(roomKey);
+    }
+
+    // 🎵 核心音訊合成引擎
+    function stopAllAudio() {
+        audioLoopTimers.forEach(t => clearTimeout(t));
+        audioLoopTimers = [];
+        activeAudioNodes.forEach(node => {
+            try { node.stop(); } catch(e){}
+            try { node.disconnect(); } catch(e){}
+        });
+        activeAudioNodes = [];
+    }
+
+    function playSingleNote(freq, type, maxGain, sustain) {
+        if (!audioCtx) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        let panner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+
+        osc.type = type;
+        osc.frequency.value = freq;
+
+        let now = audioCtx.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(maxGain, now + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + sustain);
+
+        if (panner) {
+            panner.pan.value = (Math.random() - 0.5) * 1.2;
+            osc.connect(gain).connect(panner).connect(audioCtx.destination);
+        } else {
+            osc.connect(gain).connect(audioCtx.destination);
+        }
+        
+        osc.start(now);
+        osc.stop(now + sustain + 0.1);
+    }
+
+    function playAudioEngine(type) {
+        if (!audioCtx) return;
+        stopAllAudio(); 
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'rain') {
+            // 🌧️ 聽得見的溫柔小雨聲
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            let lastOut = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                let white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = output[i];
+                output[i] *= 3.5; 
+            }
+            let noiseSrc = audioCtx.createBufferSource();
+            noiseSrc.buffer = noiseBuffer;
+            noiseSrc.loop = true;
+
+            let filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 350; 
+
+            let gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.03, now + 2); 
+
+            noiseSrc.connect(filter).connect(gain).connect(audioCtx.destination);
+            noiseSrc.start();
+            activeAudioNodes.push(noiseSrc, gain);
+
+        } else if (type === 'breath') {
+            // 🌿 呼吸房間：極微弱白噪音 + 穩定水晶和弦包覆 (音量極小化)
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+            let noiseSrc = audioCtx.createBufferSource();
+            noiseSrc.buffer = noiseBuffer;
+            noiseSrc.loop = true;
+            let filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 180; 
+            let noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0, now);
+            noiseGain.gain.linearRampToValueAtTime(0.003, now + 2); 
+            noiseSrc.connect(filter).connect(noiseGain).connect(audioCtx.destination);
+            noiseSrc.start();
+            activeAudioNodes.push(noiseSrc, noiseGain);
+
+            // 軌道二：🌟 穩定、有厚度的水晶和弦底音 (音量大幅下修至極背景的 0.015)
+            const freqs = [264.0, 330.0, 396.0]; 
+            let padGain = audioCtx.createGain();
+            padGain.gain.setValueAtTime(0, now);
+            padGain.gain.linearRampToValueAtTime(0.015, now + 2); // ★ 極低音量，只保留空間感
+            padGain.connect(audioCtx.destination);
+            activeAudioNodes.push(padGain);
+
+            freqs.forEach(f => {
+                let osc = audioCtx.createOscillator();
+                let oscGain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = f;
+                oscGain.gain.value = 0.2; 
+                osc.connect(oscGain).connect(padGain);
+                osc.start(now);
+                activeAudioNodes.push(osc, oscGain);
+            });
+
+            // 軌道三：偶爾敲擊的高音水晶 (音量下修至若有似無)
+            function loopCrystal() {
+                playSingleNote(1056.0, 'sine', 0.008, 4.0); // ★ 極弱敲擊
+                let nextTime = Math.random() * 4000 + 4000;
+                audioLoopTimers.push(setTimeout(loopCrystal, nextTime));
+            }
+            loopCrystal();
+
+        } else if (type === 'sunny') {
+            // ☀️ 重新開始房間：充滿希望的柔和晨光和弦 (純淨 Sine 波，絕對不刺耳)
+            const chords = [
+                [261.63, 329.63, 392.00, 523.25], // Cmaj (明亮、穩定)
+                [174.61, 261.63, 349.23, 440.00], // Fmaj (開闊、希望)
+                [196.00, 293.66, 392.00, 493.88]  // Gmaj (溫暖前進)
+            ];
+            let chordIdx = 0;
+            
+            function loopSunny() {
+                let freqs = chords[chordIdx];
+                chordIdx = (chordIdx + 1) % chords.length;
+                let chordDur = 6.0;
+                let tNow = audioCtx.currentTime;
+                
+                freqs.forEach((f, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let oscGain = audioCtx.createGain();
+                    osc.type = 'sine'; // ★ 換回最溫柔的正弦波，消滅刺耳感
+                    osc.frequency.value = f;
+                    
+                    let noteStart = tNow + (i * 0.4); // 錯開形成緩慢的琶音暈染
+                    oscGain.gain.setValueAtTime(0, noteStart);
+                    oscGain.gain.linearRampToValueAtTime(0.015, noteStart + 2.0); // ★ 拉長淡入時間，像陽光灑落
+                    oscGain.gain.setValueAtTime(0.015, noteStart + chordDur - 2.0);
+                    oscGain.gain.linearRampToValueAtTime(0, noteStart + chordDur); 
+                    
+                    osc.connect(oscGain).connect(audioCtx.destination);
+                    osc.start(noteStart);
+                    osc.stop(noteStart + chordDur);
+                    activeAudioNodes.push(osc, oscGain);
+                });
+                audioLoopTimers.push(setTimeout(loopSunny, (chordDur - 1.0) * 1000));
+            }
+            loopSunny();
+        }
+    }
+
+    // 🕒 滴答節拍器（用於呼吸房間閉眼引導）
+    function playTickSound(phase) {
+        if (!audioCtx || !breathIsRunning) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'triangle'; 
+        
+        let now = audioCtx.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        
+        if (phase === 'inhale') osc.frequency.value = 600;      // 叮
+        else if (phase === 'hold') osc.frequency.value = 400;   // 咚
+        else if (phase === 'exhale') osc.frequency.value = 250; // 滴 
+        
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+    }
+
+    // 🌧️ 雨天視覺引擎
+    function initRainEffect() {
+        const canvas = document.getElementById('rainCanvas');
+        rainCtx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        rLines = [];
+        for (let i = 0; i < 50; i++) {
+            rLines.push({
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                l: Math.random() * 20 + 10, v: Math.random() * 4 + 4
+            });
+        }
+        clearInterval(rainInterval);
+        rainInterval = setInterval(() => {
+            if (document.body.style.backgroundColor === "#1e2126" || document.body.style.backgroundColor === "rgb(30, 33, 38)") {
+                rainCtx.strokeStyle = 'rgba(255,255,255,0.3)'; 
+            } else { rainCtx.strokeStyle = 'rgba(0,0,0,0.05)'; }
+            rainCtx.clearRect(0, 0, canvas.width, canvas.height);
+            rainCtx.lineWidth = 1;
+            rLines.forEach(p => {
+                rainCtx.beginPath(); rainCtx.moveTo(p.x, p.y); rainCtx.lineTo(p.x - 1, p.y + p.l); rainCtx.stroke();
+                p.y += p.v; 
+                if (p.y > canvas.height) { p.y = -p.l; p.x = Math.random() * canvas.width; }
+            });
+        }, 30);
+    }
+
+    function burnRainNote() {
+        if (!document.getElementById('rainNote').value.trim()) {
+            alert("請至少留下一句心事，讓窗外的雨幫你洗刷乾淨 🙏");
+            return;
+        }
+        alert("✨ 昏黃的小夜燈明滅了一下。雨水已經承接了你的重擔，這段文字已在晶片端徹底燃燒抹除。");
+        document.getElementById('rainNote').value = "";
+    }
+
+    // 🌿 4-7-8 1秒節拍器同步算法
+    function toggleBreathEngine() {
+        const btn = document.getElementById('breathCtrlBtn');
+        if (!breathIsRunning) {
+            breathIsRunning = true;
+            btn.innerText = "暫停呼吸調息";
+            startBreathEngine();
+        } else {
+            stopBreathEngine();
+        }
+    }
+
+    function startBreathEngine() {
+        breathPhase = 'inhale';
+        breathTickCount = 0;
+        breathTimerObj = setInterval(breathBeat, 1000); 
+        breathBeat(); 
+    }
+
+    function breathBeat() {
+        if (!breathIsRunning) return;
+        const ball = document.getElementById('bBall');
+        const text = document.getElementById('bText');
+
+        if (breathPhase === 'inhale') {
+            if (breathTickCount === 0) {
+                ball.style.transition = "transform 4s linear";
+                ball.style.transform = "scale(1.5)";
+                text.innerText = "🌬️ 吸氣... (4秒)";
+                text.style.color = "#16a085";
+            }
+            playTickSound('inhale');
+            breathTickCount++;
+            if (breathTickCount >= 4) { breathPhase = 'hold'; breathTickCount = 0; }
+            
+        } else if (breathPhase === 'hold') {
+            if (breathTickCount === 0) {
+                text.innerText = "🛑 屏息，感受體內能量... (7秒)";
+                text.style.color = "#d35400";
+            }
+            playTickSound('hold');
+            breathTickCount++;
+            if (breathTickCount >= 7) { breathPhase = 'exhale'; breathTickCount = 0; }
+            
+        } else if (breathPhase === 'exhale') {
+            if (breathTickCount === 0) {
+                ball.style.transition = "transform 8s linear";
+                ball.style.transform = "scale(1)";
+                text.innerText = "💨 緩慢吐出焦慮... (8秒)";
+                text.style.color = "#7f8c8d";
+            }
+            playTickSound('exhale');
+            breathTickCount++;
+            if (breathTickCount >= 8) { breathPhase = 'inhale'; breathTickCount = 0; }
+        }
+    }
+
+    function stopBreathEngine() {
+        breathIsRunning = false;
+        clearInterval(breathTimerObj);
+        const btn = document.getElementById('breathCtrlBtn');
+        const ball = document.getElementById('bBall');
+        if(btn) btn.innerText = "啟動 4-7-8 意識調息";
+        document.getElementById('bText').innerText = "調息已暫停";
+        if(ball) { ball.style.transition = "transform 0.5s ease"; ball.style.transform = "scale(1)"; }
+    }
+
+    // ☀️ 抽取任務
+    function generateMicroMiracle() {
+        document.getElementById('sunnyOracle').innerText = sunnyOracles[Math.floor(Math.random() * sunnyOracles.length)];
+        document.getElementById('microTask').innerText = microTasks[Math.floor(Math.random() * microTasks.length)];
+        const card = document.querySelector('.miracle-card');
+        card.style.animation = 'none';
+        setTimeout(() => card.style.animation = 'spaceFade 0.6s ease', 10);
+    }
+
+    window.onresize = function() {
+        const canvas = document.getElementById('rainCanvas');
+        if (canvas && !document.body.classList.contains('light-mode')) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+    };
+</script>
+
+</body>
+</html>
